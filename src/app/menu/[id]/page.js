@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -13,9 +14,34 @@ export async function generateStaticParams() {
   }));
 }
 
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const dish = await getDishById(id);
+
+  if (!dish) {
+    return {
+      title: "Dish Not Found",
+      description: "This dish could not be found on Addis Eats.",
+    };
+  }
+
+  return {
+    title: dish.name,
+    description: dish.description,
+    alternates: {
+      canonical: `/menu/${dish.id}`,
+    },
+    openGraph: {
+      title: `${dish.name} | Addis Eats`,
+      description: dish.description,
+      url: `/menu/${dish.id}`,
+      type: "article",
+    },
+  };
+}
+
 export default async function DishPage({ params }) {
   const { id } = await params;
-
   const dish = await getDishById(id);
 
   if (!dish) {
@@ -32,9 +58,7 @@ export default async function DishPage({ params }) {
         <strong>{dish.price} ETB</strong>
       </p>
 
-      <Link href="/menu">
-        Back to Menu
-      </Link>
+      <Link href="/menu">Back to Menu</Link>
     </article>
   );
 }
