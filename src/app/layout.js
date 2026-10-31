@@ -29,12 +29,8 @@ export const metadata = {
       },
     ],
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "Addis Eats | Ethiopian Food Ordering",
-    description:
-      "Discover Ethiopian dishes and order delicious food with Addis Eats.",
     images: ["/og-image.png"],
   },
 };
