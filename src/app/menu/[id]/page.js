@@ -1,10 +1,6 @@
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  getDishById,
-  getDishes,
-} from "../../../lib/dishes";
+import { getDishById, getDishes } from "../../../lib/dishes";
 
 export async function generateStaticParams() {
   const dishes = await getDishes();
@@ -28,14 +24,23 @@ export async function generateMetadata({ params }) {
   return {
     title: dish.name,
     description: dish.description,
+
     alternates: {
       canonical: `/menu/${dish.id}`,
     },
+
     openGraph: {
       title: `${dish.name} | Addis Eats`,
       description: dish.description,
       url: `/menu/${dish.id}`,
       type: "article",
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title: `${dish.name} | Addis Eats`,
+      description: dish.description,
+      images: ["/og-image.png"],
     },
   };
 }
