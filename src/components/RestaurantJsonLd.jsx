@@ -1,4 +1,3 @@
-
 export default function RestaurantJsonLd() {
   const jsonLd = {
     "@context": "https://schema.org",
@@ -8,7 +7,7 @@ export default function RestaurantJsonLd() {
       "Discover Ethiopian dishes and order delicious food with Addis Eats.",
     servesCuisine: ["Ethiopian"],
     priceRange: "$$",
-    url: "https://addis-eats.vercel.app",
+    url: "https://day44-alpha.vercel.app",
   };
 
   return (

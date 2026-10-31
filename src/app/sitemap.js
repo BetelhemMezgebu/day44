@@ -1,7 +1,6 @@
-
 import { getDishes } from "../lib/dishes";
 
-const siteUrl = "https://addis-eats.vercel.app";
+const siteUrl = "https://day44-alpha.vercel.app";
 
 export default async function sitemap() {
   const dishes = await getDishes();

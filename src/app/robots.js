@@ -1,5 +1,4 @@
-
-const siteUrl = "https://addis-eats.vercel.app";
+const siteUrl = "https://day44-alpha.vercel.app";
 
 export default function robots() {
   return {
