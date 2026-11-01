@@ -1,10 +1,12 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import Link from "next/link";
+
+const CART_KEY = "addisEatsCart";
+const CART_EVENT = "addisEatsCartUpdated";
 
 const fetcher = async (url) => {
   const response = await fetch(url);
@@ -20,6 +22,7 @@ export default function SearchableMenu() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [addedDishId, setAddedDishId] = useState(null);
 
   const searchParams = useSearchParams();
   const category = searchParams.get("category") || "";
@@ -37,14 +40,57 @@ export default function SearchableMenu() {
   }, [debouncedSearch, category]);
 
   const apiUrl = `/api/dishes?q=${encodeURIComponent(
-    debouncedSearch
+    debouncedSearch,
   )}&category=${encodeURIComponent(category)}&page=${page}&limit=2`;
 
-  const { data, error, isLoading, isValidating } = useSWR(
-    apiUrl,
-    fetcher,
-    { keepPreviousData: true }
-  );
+  const { data, error, isLoading, isValidating } = useSWR(apiUrl, fetcher, {
+    keepPreviousData: true,
+  });
+
+  function handleAddToCart(dish) {
+    try {
+      const savedCart = localStorage.getItem(CART_KEY);
+      const cart = JSON.parse(savedCart || "[]");
+
+      if (!Array.isArray(cart)) {
+        throw new Error("Invalid cart data");
+      }
+
+      const existingItem = cart.find(
+        (item) => String(item.id) === String(dish.id),
+      );
+
+      let updatedCart;
+
+      if (existingItem) {
+        updatedCart = cart.map((item) =>
+          String(item.id) === String(dish.id)
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
+        );
+      } else {
+        updatedCart = [
+          ...cart,
+          {
+            id: dish.id,
+            name: dish.name,
+            price: Number(dish.price),
+            quantity: 1,
+            image: dish.image || "",
+          },
+        ];
+      }
+
+      localStorage.setItem(CART_KEY, JSON.stringify(updatedCart));
+
+      window.dispatchEvent(new Event(CART_EVENT));
+
+      setAddedDishId(dish.id);
+    } catch (err) {
+      console.error("Failed to add item to cart:", err);
+      alert("Unable to add this dish to your cart.");
+    }
+  }
 
   if (isLoading && !data) {
     return <p>Loading menu...</p>;
@@ -62,6 +108,7 @@ export default function SearchableMenu() {
       <h2>Our Menu</h2>
 
       <label htmlFor="dish-search">Search dishes</label>
+
       <input
         id="dish-search"
         type="search"
@@ -75,8 +122,7 @@ export default function SearchableMenu() {
 
       {category && (
         <p>
-          Category: {category}{" "}
-          <Link href="/menu">Clear category</Link>
+          Category: {category} <Link href="/menu">Clear category</Link>
         </p>
       )}
 
@@ -85,9 +131,20 @@ export default function SearchableMenu() {
           dishes.map((dish) => (
             <article key={dish.id}>
               <h3>{dish.name}</h3>
+
               <p>{dish.description}</p>
+
               <p>{dish.price} ETB</p>
+
               <Link href={`/menu/${dish.id}`}>View Dish</Link>
+
+              <button type="button" onClick={() => handleAddToCart(dish)}>
+                Add to Cart
+              </button>
+
+              {addedDishId === dish.id && (
+                <p role="status">{dish.name} added to cart!</p>
+              )}
             </article>
           ))
         ) : (
@@ -105,8 +162,8 @@ export default function SearchableMenu() {
         </button>
 
         <span>
-          {" "}Page {data?.page ?? page} of {totalPages}{" "}
-          (Total dishes: {data?.total ?? 0}){" "}
+          Page {data?.page ?? page} of {totalPages} (Total dishes:{" "}
+          {data?.total ?? 0})
         </span>
 
         <button

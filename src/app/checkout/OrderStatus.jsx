@@ -1,60 +1,63 @@
-
 "use client";
 
 import useSWR from "swr";
 
-function getSavedOrder(initialOrder) {
-  try {
-    const saved = localStorage.getItem("addisEatsOrder");
+const fetcher = async (url) => {
+  const response = await fetch(url);
 
-    if (saved) {
-      const order = JSON.parse(saved);
-
-      if (order.orderId === initialOrder.orderId) {
-        return order;
-      }
-    }
-  } catch {
-    // Use the server-provided initial order if storage is unavailable.
+  if (!response.ok) {
+    const result = await response.json();
+    throw new Error(result.message || "Failed to fetch order status.");
   }
 
-  return initialOrder;
-}
-
-async function fetchOrder(initialOrder) {
-  const savedOrder = getSavedOrder(initialOrder);
-  return savedOrder;
-}
+  return response.json();
+};
 
 export default function OrderStatus({ initialOrder }) {
+  const orderId = initialOrder?.orderId;
+
   const { data, error, isLoading } = useSWR(
-    initialOrder?.orderId
-      ? ["addis-eats-order", initialOrder.orderId]
+    orderId
+      ? `/api/orders/status?orderId=${encodeURIComponent(orderId)}`
       : null,
-    () => fetchOrder(initialOrder),
+    fetcher,
     {
-      fallbackData: initialOrder,
+      fallbackData: { order: initialOrder },
       refreshInterval: 5000,
       revalidateOnFocus: true,
-    }
+    },
   );
 
-  if (isLoading && !data) return <p>Loading order status...</p>;
-  if (error && !data) return <p>Could not load the order status.</p>;
-  if (!data) return <p>No order found.</p>;
+  const order = data?.order || initialOrder;
+
+  if (isLoading) {
+    return <p>Loading order status...</p>;
+  }
+
+  if (error) {
+    return (
+      <p role="alert" className="text-red-600">
+        {error.message}
+      </p>
+    );
+  }
 
   return (
-    <section>
-      <h2>Order Status</h2>
-      <p>Order ID: {data.orderId}</p>
-      <p>Status: {data.status}</p>
+    <section className="space-y-2 rounded-lg border p-4">
+      <h2 className="text-xl font-bold">Order Status</h2>
+
       <p>
-        Last updated:{" "}
-        {data.updatedAt
-          ? new Date(data.updatedAt).toLocaleString()
-          : "Not available"}
+        <strong>Order ID:</strong> {order.orderId}
       </p>
-      <p>Order status refreshes every five seconds.</p>
+
+      <p>
+        <strong>Status:</strong> {order.status}
+      </p>
+
+      <p>
+        <strong>Last Updated:</strong>{" "}
+        {new Date(order.updatedAt).toLocaleString()}
+      </p>
     </section>
   );
 }

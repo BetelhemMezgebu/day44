@@ -1,7 +1,10 @@
+
 import { NextResponse } from "next/server";
 
 export function proxy(request) {
   const session = request.cookies.get("session")?.value;
+
+ 
 
   const validSessions = ["demo-user-1", "demo-staff-1"];
 

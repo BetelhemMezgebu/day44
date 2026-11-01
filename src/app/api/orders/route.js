@@ -1,54 +1,41 @@
-
 import { NextResponse } from "next/server";
-import { getDishes } from "../../../lib/dishes";
+import { getSession } from "../../../lib/session";
+import { getOrdersByUser, getAllOrders } from "../../../lib/orders";
 
-export async function GET(request) {
+export const dynamic = "force-dynamic";
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
+    const session = await getSession();
 
-    const page = Math.max(
-      1,
-      Number.parseInt(searchParams.get("page") || "1", 10) || 1
-    );
+    if (!session) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please sign in." },
+        { status: 401 },
+      );
+    }
 
-    const limit = Math.min(
-      10,
-      Math.max(
-        1,
-        Number.parseInt(searchParams.get("limit") || "2", 10) || 2
-      )
-    );
-
-    const search = (searchParams.get("q") || "").trim().toLowerCase();
-    const category = searchParams.get("category") || "";
-
-    const allDishes = await getDishes();
-
-    const filteredDishes = allDishes.filter((dish) => {
-      const matchesSearch = dish.name.toLowerCase().includes(search);
-      const matchesCategory = !category || dish.category === category;
-
-      return matchesSearch && matchesCategory;
-    });
-
-    const total = filteredDishes.length;
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-    const currentPage = Math.min(page, totalPages);
-    const start = (currentPage - 1) * limit;
-
-    return NextResponse.json({
-      dishes: filteredDishes.slice(start, start + limit),
-      page: currentPage,
-      limit,
-      total,
-      totalPages,
-    });
-  } catch (error) {
-    console.error("Failed to fetch dishes:", error);
+    // Staff can see all customer orders.
+    // Customers can only see their own orders.
+    const orders =
+      session.role === "staff"
+        ? getAllOrders()
+        : getOrdersByUser(session.userId);
 
     return NextResponse.json(
-      { message: "Failed to fetch dishes" },
-      { status: 500 }
+      { orders },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+
+    return NextResponse.json(
+      { message: "Failed to fetch orders." },
+      { status: 500 },
     );
   }
 }
